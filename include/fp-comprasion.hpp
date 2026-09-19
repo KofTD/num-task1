@@ -8,6 +8,7 @@
 
 template <std::floating_point F>
 constexpr auto approxEqual(
+    // NOLINTNEXTLINE(*-identifier-length, *-magic-numbers)
     F a, F b, F relative_tolerance = std::numeric_limits<F>::epsilon() * 7,
     F absolute_tolerance = std::numeric_limits<F>::epsilon()) -> bool {
   if (a == b) {

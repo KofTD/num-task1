@@ -44,15 +44,19 @@ struct TSAE {
   TSAE(TSAE&&) = default;
   auto operator=(const TSAE&) -> TSAE& = default;
   auto operator=(TSAE&&) -> TSAE& = default;
-  TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes() + 1) {
-    for (auto i : std::views::iota(static_cast<size_t>(1), grid.steps())) {
-      const auto ai = problem.k(midpoint(grid.region(i - 1)));
-      const auto ai1 = problem.k(midpoint(grid.region(i)));
-      matrix.a[i - 1] = ai / (grid.step() * grid.step());
-      matrix.b[i - 1] = ai1 / (grid.step() * grid.step());
-      matrix.c[i - 1] =
-          ((ai + ai1) / (grid.step() * grid.step())) + problem.q(grid.node(i));
-      rhs[i] = problem.f(grid.node(i));
+  TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes()) {
+    for (auto i : std::views::iota(1UZ, grid.steps())) {
+      // NOLINTBEGIN(*-identifier-length)
+      const auto a = problem.k(midpoint(grid.region(i - 1)));
+      const auto a_next = problem.k(midpoint(grid.region(i)));
+      const auto d = problem.q(grid.node(i));
+      const auto phi = problem.f(grid.node(i));
+      const auto step_sqr = grid.step() * grid.step();
+      matrix.a[i - 1] = a / step_sqr;
+      matrix.b[i - 1] = a_next / step_sqr;
+      matrix.c[i - 1] = ((a + a_next) / step_sqr) + d;
+      rhs[i] = phi;
+      // NOLINTEND(*-identifier-length)
     }
   }
   explicit TSAE(std::unsigned_integral auto size)
@@ -115,7 +119,7 @@ auto tdma(const TSAE<F>& system) -> std::vector<F> {
   // Forward pass
   alpha[0] = system.matrix.kappa1;
   beta[0] = system.mu1();
-  for (auto i : std::views::iota(static_cast<size_t>(1), alpha.size())) {
+  for (auto i : std::views::iota(1UZ, alpha.size())) {
     F denom = matrix.c[i - 1] - (matrix.a[i - 1] * alpha[i - 1]);
     alpha[i] = matrix.b[i - 1] / denom;
     beta[i] = ((matrix.a[i - 1] * beta[i - 1]) + system.phi(i)) / denom;
@@ -125,8 +129,7 @@ auto tdma(const TSAE<F>& system) -> std::vector<F> {
   unknowns.back() = (system.mu2() + (system.matrix.kappa2 * beta.back())) /
                     (1.0 - (system.matrix.kappa2 * alpha.back()));
   for (auto i :
-       std::views::iota(static_cast<std::size_t>(0), unknowns.size() - 1) |
-           std::views::reverse) {
+       std::views::iota(0UZ, unknowns.size() - 1) | std::views::reverse) {
     unknowns[i] = (alpha[i] * unknowns[i + 1]) + beta[i];
   }
   return unknowns;

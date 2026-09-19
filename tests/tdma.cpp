@@ -8,12 +8,14 @@ class TDMA : public ::testing::Test {
  protected:
   using fp_type = float;
 
+  // NOLINTBEGIN(*-magic-numbers)
   std::vector<fp_type> a_ = {-1, -1};
   std::vector<fp_type> b_ = {-1, -1};
   std::vector<fp_type> c_ = {-4, -4};
   fp_type kappa1_ = 0.25;
   fp_type kappa2_ = 0.25;
   std::vector<fp_type> rhs_ = {0.5, -4, -6, 13.0 / 4};
+  // NOLINTEND(*-magic-numbers)
 };
 
 TEST_F(TDMA, CanUseTDMA) {
