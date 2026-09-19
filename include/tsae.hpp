@@ -4,6 +4,10 @@
 #include <ranges>
 #include <vector>
 
+#include "fp-comprasion.hpp"
+#include "grid.hpp"
+#include "problem.hpp"
+
 template <std::floating_point F>
 struct TridiagonalMatrix {
   std::vector<F> a;
@@ -17,8 +21,13 @@ struct TridiagonalMatrix {
   TridiagonalMatrix(TridiagonalMatrix&&) = default;
   auto operator=(const TridiagonalMatrix&) -> TridiagonalMatrix& = default;
   auto operator=(TridiagonalMatrix&&) -> TridiagonalMatrix& = default;
-  explicit TridiagonalMatrix(std::unsigned_integral auto size)
-      : a(size - 2, 0.0), b(size - 2, 0.0), c(size - 2, 0.0) {}
+  explicit TridiagonalMatrix(std::integral auto size)
+      : a(size - 2, 0.0), b(size - 2, 0.0), c(size - 2, 0.0) {
+    if (size - 2 <= 0) {
+      throw std::invalid_argument(
+          "Size must be a positive number and greater than 2");
+    }
+  }
 
   [[nodiscard]] auto size() const -> std::size_t { return a.size() + 2; }
   ~TridiagonalMatrix() = default;
@@ -35,6 +44,17 @@ struct TSAE {
   TSAE(TSAE&&) = default;
   auto operator=(const TSAE&) -> TSAE& = default;
   auto operator=(TSAE&&) -> TSAE& = default;
+  TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes() + 1) {
+    for (auto i : std::views::iota(static_cast<size_t>(1), grid.steps())) {
+      const auto ai = problem.k(midpoint(grid.region(i - 1)));
+      const auto ai1 = problem.k(midpoint(grid.region(i)));
+      matrix.a[i - 1] = ai / (grid.step() * grid.step());
+      matrix.b[i - 1] = ai1 / (grid.step() * grid.step());
+      matrix.c[i - 1] =
+          ((ai + ai1) / (grid.step() * grid.step())) + problem.q(grid.node(i));
+      rhs[i] = problem.f(grid.node(i));
+    }
+  }
   explicit TSAE(std::unsigned_integral auto size)
       : matrix(size), rhs(size, 0.0) {}
 
@@ -51,7 +71,7 @@ struct TSAE {
 template <std::floating_point F>
 auto canUseTdma(const TSAE<F>& system) -> bool {
   const auto non_zero = [](const auto val) -> bool {
-    return std::abs(val) != 0;
+    return !approxEqual(std::abs(val), 0.0F);
   };
   // NOLINTBEGIN(readability-identifier-length)
   const auto non_strict_predominance = [](const auto& values) -> bool {
@@ -87,27 +107,27 @@ auto canUseTdma(const TSAE<F>& system) -> bool {
 // This is progonka
 template <std::floating_point F>
 auto tdma(const TSAE<F>& system) -> std::vector<F> {
-  const int32_t matrix_size = system.matrix.size();
-  std::vector<F> alpha(matrix_size, 0.0);
-  std::vector<F> beta(matrix_size, 0.0);
+  const std::size_t matrix_size = system.matrix.size();
   const auto& matrix = system.matrix;
+  std::vector<F> alpha(matrix_size - 1, 0.0);
+  std::vector<F> beta(matrix_size - 1, 0.0);
 
   // Forward pass
   alpha[0] = system.matrix.kappa1;
   beta[0] = system.mu1();
-  for (auto i : std::views::iota(0, matrix_size - 1)) {
-    F denom = matrix.c[i] - (matrix.a[i] * alpha[i]);
-    alpha[i + 1] = matrix.b[i] / denom;
-    beta[i + 1] = ((matrix.a[i] * beta[i]) + system.phi(i)) / denom;
+  for (auto i : std::views::iota(static_cast<size_t>(1), alpha.size())) {
+    F denom = matrix.c[i - 1] - (matrix.a[i - 1] * alpha[i - 1]);
+    alpha[i] = matrix.b[i - 1] / denom;
+    beta[i] = ((matrix.a[i - 1] * beta[i - 1]) + system.phi(i)) / denom;
   }
-
   // Backward pass
   std::vector<F> unknowns(matrix_size, 0.0);  // It's an y vector
-  unknowns[matrix_size] =
-      (system.mu2() + (system.matrix.kappa2 * beta[matrix_size])) /
-      (1.0 - (system.matrix.kappa2 * alpha[matrix_size]));
-  for (auto i : std::views::iota(0, matrix_size) | std::views::reverse) {
-    unknowns[i] = (alpha[i + 1] * unknowns[i + 1]) + beta[i + 1];
+  unknowns.back() = (system.mu2() + (system.matrix.kappa2 * beta.back())) /
+                    (1.0 - (system.matrix.kappa2 * alpha.back()));
+  for (auto i :
+       std::views::iota(static_cast<std::size_t>(0), unknowns.size() - 1) |
+           std::views::reverse) {
+    unknowns[i] = (alpha[i] * unknowns[i + 1]) + beta[i];
   }
   return unknowns;
 }
