@@ -1,7 +1,13 @@
 #pragma once
 
 #include <concepts>
+#include <cstdlib>
+#include <format>
+#include <limits>
+#include <stdexcept>
 #include <utility>
+
+#include "fp-comprasion.hpp"
 
 template <std::floating_point F>
 class UniformGrid {
@@ -17,12 +23,19 @@ class UniformGrid {
   auto operator=(const UniformGrid&) -> UniformGrid& = default;
   auto operator=(UniformGrid&&) -> UniformGrid& = default;
 
-  UniformGrid(F start, F end, F step)
-      : start_(start), end_(end), step_(step) {};
+  UniformGrid(F start, F end, F step) : start_(start), end_(end), step_(step) {
+    if (start > end) {
+      throw std::invalid_argument("Start must be less than end");
+    }
+  };
   UniformGrid(F start, F end, std::unsigned_integral auto steps)
       : start_(start),
         end_(end),
-        step_(static_cast<F>((end_ - start_) / steps)) {}
+        step_(static_cast<F>((end_ - start_) / steps)) {
+    if (start > end) {
+      throw std::invalid_argument("Start must be less than end");
+    }
+  }
 
   class Iterator {
    private:
@@ -35,10 +48,10 @@ class UniformGrid {
     using reference = value_type;
 
     Iterator() = default;
-    Iterator(const Iterator&) = delete;
-    Iterator(Iterator&&) = delete;
-    auto operator=(const Iterator&) -> Iterator& = delete;
-    auto operator=(Iterator&&) -> Iterator& = delete;
+    Iterator(const Iterator&) = default;
+    Iterator(Iterator&&) = default;
+    auto operator=(const Iterator&) -> Iterator& = default;
+    auto operator=(Iterator&&) -> Iterator& = default;
     explicit Iterator(UniformGrid* grid, std::size_t step = 0)
         : grid_(grid), step_(step) {}
 
@@ -69,26 +82,53 @@ class UniformGrid {
       step_ -= diff;
       return *this;
     }
+    friend auto operator+(Iterator it, difference_type diff) -> Iterator {
+      it += diff;
+      return it;
+    }
+    friend auto operator-(Iterator it, difference_type diff) -> Iterator {
+      it -= diff;
+      return it;
+    }
     friend auto operator-(const Iterator& lhs, const Iterator& rhs)
         -> difference_type {
       return static_cast<difference_type>(rhs.step_) -
              static_cast<difference_type>(lhs.step_);
     }
     auto operator==(const Iterator& other) const -> bool = default;
+    auto operator!=(const Iterator& other) const -> bool = default;
     auto operator<=>(const Iterator& other) const {
       return step_ <=> other.step_;
     }
     ~Iterator() = default;
   };
   auto region(std::size_t index) const -> std::pair<F, F> {
+    if (index >= steps()) {
+      throw std::invalid_argument(
+          std::format("Index {} is out of bounds [0, {}]", index, steps()));
+    }
     return {node(index), node(index + 1)};
   }
-  auto node(std::size_t index) const -> F { return start_ + (step_ * index); }
-  [[nodiscard]] auto steps() const -> std::size_t {
+  auto node(std::size_t index) const -> F {
+    if (index >= steps()) {
+      throw std::invalid_argument(
+          std::format("Index {} is out of bounds [0, {}]", index, steps()));
+    }
+    return start_ + (step_ * index);
+  }
+  auto step() const noexcept -> F { return step_; }
+  [[nodiscard]] auto steps() const noexcept -> std::size_t {
     return static_cast<std::size_t>((end_ - start_) / step_);
   }
+  auto begin() -> Iterator { return Iterator(this); }
+  auto end() -> Iterator { return Iterator(this, steps()); }
   auto begin() const -> Iterator { return {this}; }
   auto end() const -> Iterator { return {this, steps()}; }
 
   ~UniformGrid() = default;
 };
+
+template <std::floating_point F>
+auto midpoint(std::pair<F, F> bounds) -> F {
+  return (bounds.second - bounds.first) / 2;
+}

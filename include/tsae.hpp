@@ -13,10 +13,15 @@ struct TridiagonalMatrix {
   F kappa2 = 0.0;
 
   TridiagonalMatrix() = default;
-  explicit TridiagonalMatrix(std::size_t size)
+  TridiagonalMatrix(const TridiagonalMatrix&) = default;
+  TridiagonalMatrix(TridiagonalMatrix&&) = default;
+  auto operator=(const TridiagonalMatrix&) -> TridiagonalMatrix& = default;
+  auto operator=(TridiagonalMatrix&&) -> TridiagonalMatrix& = default;
+  explicit TridiagonalMatrix(std::unsigned_integral auto size)
       : a(size - 2, 0.0), b(size - 2, 0.0), c(size - 2, 0.0) {}
 
   [[nodiscard]] auto size() const -> std::size_t { return a.size() + 2; }
+  ~TridiagonalMatrix() = default;
 };
 
 // Tridiagonal System of Algebraic Equations - TSAE
@@ -25,12 +30,22 @@ struct TSAE {
   TridiagonalMatrix<F> matrix;
   std::vector<F> rhs;
 
+  TSAE() = default;
+  TSAE(const TSAE&) = default;
+  TSAE(TSAE&&) = default;
+  auto operator=(const TSAE&) -> TSAE& = default;
+  auto operator=(TSAE&&) -> TSAE& = default;
+  explicit TSAE(std::unsigned_integral auto size)
+      : matrix(size), rhs(size, 0.0) {}
+
   auto mu1(this auto&& self) -> auto&& { return self.rhs[0]; }
   auto mu2(this auto&& self) -> auto&& { return self.rhs.back(); }
 
   auto phi(this auto&& self, std::size_t index) -> auto&& {
     return self.rhs[index];
   }
+
+  ~TSAE() = default;
 };
 
 template <std::floating_point F>
