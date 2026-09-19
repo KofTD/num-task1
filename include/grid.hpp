@@ -1,0 +1,94 @@
+#pragma once
+
+#include <concepts>
+#include <utility>
+
+template <std::floating_point F>
+class UniformGrid {
+ private:
+  F start_;
+  F end_;
+  F step_;
+
+ public:
+  UniformGrid() = delete;
+  UniformGrid(const UniformGrid&) = default;
+  UniformGrid(UniformGrid&&) = default;
+  auto operator=(const UniformGrid&) -> UniformGrid& = default;
+  auto operator=(UniformGrid&&) -> UniformGrid& = default;
+
+  UniformGrid(F start, F end, F step)
+      : start_(start), end_(end), step_(step) {};
+  UniformGrid(F start, F end, std::unsigned_integral auto steps)
+      : start_(start),
+        end_(end),
+        step_(static_cast<F>((end_ - start_) / steps)) {}
+
+  class Iterator {
+   private:
+    const UniformGrid* grid_ = nullptr;
+    std::size_t step_ = 0;
+
+   public:
+    using difference_type = std::ptrdiff_t;
+    using value_type = std::pair<F, F>;
+    using reference = value_type;
+
+    Iterator() = default;
+    Iterator(const Iterator&) = delete;
+    Iterator(Iterator&&) = delete;
+    auto operator=(const Iterator&) -> Iterator& = delete;
+    auto operator=(Iterator&&) -> Iterator& = delete;
+    explicit Iterator(UniformGrid* grid, std::size_t step = 0)
+        : grid_(grid), step_(step) {}
+
+    auto operator*() const -> value_type { return grid_->region(step_); }
+    auto operator++() -> Iterator& {
+      step_++;
+      return *this;
+    }
+    auto operator++(int) -> Iterator {
+      auto tmp = *this;
+      ++*this;
+      return tmp;
+    }
+    auto operator--() -> Iterator& {
+      step_--;
+      return *this;
+    }
+    auto operator--(int) -> Iterator {
+      auto tmp = *this;
+      --*this;
+      return tmp;
+    }
+    auto operator+=(difference_type diff) -> Iterator& {
+      step_ += diff;
+      return *this;
+    }
+    auto operator-=(difference_type diff) -> Iterator& {
+      step_ -= diff;
+      return *this;
+    }
+    friend auto operator-(const Iterator& lhs, const Iterator& rhs)
+        -> difference_type {
+      return static_cast<difference_type>(rhs.step_) -
+             static_cast<difference_type>(lhs.step_);
+    }
+    auto operator==(const Iterator& other) const -> bool = default;
+    auto operator<=>(const Iterator& other) const {
+      return step_ <=> other.step_;
+    }
+    ~Iterator() = default;
+  };
+  auto region(std::size_t index) const -> std::pair<F, F> {
+    return {node(index), node(index + 1)};
+  }
+  auto node(std::size_t index) const -> F { return start_ + (step_ * index); }
+  [[nodiscard]] auto steps() const -> std::size_t {
+    return static_cast<std::size_t>((end_ - start_) / step_);
+  }
+  auto begin() const -> Iterator { return {this}; }
+  auto end() const -> Iterator { return {this, steps()}; }
+
+  ~UniformGrid() = default;
+};
