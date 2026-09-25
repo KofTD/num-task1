@@ -23,6 +23,11 @@ include_directories(include)
 
 add_executable(hello src/main.cpp)
 
+add_executable(var2_runner
+    src/task2_solver.cpp
+    src/task2_main.cpp
+)
+
 if(BUILD_TESTS)
     find_package(GTest REQUIRED)
     enable_testing()
