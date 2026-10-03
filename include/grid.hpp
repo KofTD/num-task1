@@ -111,6 +111,26 @@ class UniformGrid {
     }
     return start_ + (step_ * index);
   }
+
+  auto supNode(std::size_t index) const -> F {
+    if (index > steps_ - 1) {
+      throw std::invalid_argument(
+          std::format("Index {} is out of bounds [0, {}]", index, steps_ - 1));
+    }
+    auto main_node = this->node(index);
+    return main_node + (step_ / 2);
+  }
+
+  auto supRegion(std::size_t index) const -> std::pair<F, F> {
+    if (index > steps_ - 2) {
+      throw std::invalid_argument(
+          std::format("Index {} is out of bounds [0, {}]", index, steps_ - 2));
+    }
+    auto left = this->supNode(index);
+    auto right = this->supNode(index + 1);
+    return {left, right};
+  }
+
   auto step() const noexcept -> F { return step_; }
   [[nodiscard]] auto steps() const noexcept -> std::size_t { return steps_; }
   [[nodiscard]] auto nodes() const noexcept -> std::size_t {

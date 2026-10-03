@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.1.0)
-project(task1 LANGUAGES CXX)
+project(balance_method LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,9 +19,13 @@ if(ENABLE_ASAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif()
 endif()
 
+find_package(Boost 1.92.0 COMPONENTS program_options REQUIRED)
+
+include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
 
-add_executable(hello src/main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/exp_utility.cpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
 
 if(BUILD_TESTS)
     find_package(GTest REQUIRED)

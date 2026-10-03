@@ -28,8 +28,61 @@ struct TridiagonalMatrix {
           "Size must be a positive number and greater than 2");
     }
   }
+  // auto row(std::size_t index) -> std::vector<F> {
+  //   auto matrix_size = this->size();
+  //   if (index < 0 or index > matrix_size - 1) {
+  //     throw std::invalid_argument(
+  //         std::format("Matrix has rows with numbers in [0, {}] not with {}",
+  //                     matrix_size - 1, index));
+  //   }
 
-  [[nodiscard]] auto size() const -> std::size_t { return a.size() + 2; }
+  //   std::vector<F> row(matrix_size, 0.0);
+  //   if (index == 0) {
+  //     row[0] = 1.0;
+  //     row[1] = this->kappa1;
+  //     return row;
+  //   }
+  //   if (index == this->size()) {
+  //     row[index - 1] = 1.0;
+  //     row[index - 2] = this->kappa2;
+  //     return row;
+  //   }
+  //   std::size_t offset = index - 1;
+  //   row[offset] = this->a[index];
+  //   row[offset + 1] = this->c[index];
+  //   row[offset + 2] = this->b[index];
+  //   return row;
+  // }
+
+  // template <typename R>
+  //   requires std::ranges::sized_range<R>
+  // auto operator*(const R& vec) -> std::vector<F> {
+  //   auto vec_size = std::size(vec);
+  //   auto matrix_size = this->size();
+  //   if (vec_size != matrix_size) {
+  //     throw std::invalid_argument(
+  //         std::format("Matrix and vector have incompatible sizes: {} vs {}",
+  //                     matrix_size, vec_size));
+  //   }
+  //   std::vector<F> result;
+  //   result.reserve(vec_size);
+  //   auto rows =
+  //       std::views::iota(0UZ, matrix_size) |
+  //       std::views::transform([*this](std::size_t index) -> std::vector<F> {
+  //         return this->row(index);
+  //       });
+  //   for (auto row : rows) {
+  //     auto production = std::views::zip(row, vec) |
+  //                       std::views::transform(std::multiplies<F>());
+  //     auto res = std::ranges::fold_left(production, 0.0, std::plus<F>());
+  //     result.push_back(res);
+  //   }
+  //   return result;
+  // }
+
+  [[nodiscard("result ignored")]] auto size() const -> std::size_t {
+    return a.size() + 2;
+  }
   ~TridiagonalMatrix() = default;
 };
 
