@@ -1,1 +1,114 @@
-BasedOnStyle: Google
+BasedOnStyle: LLVM
+Standard: Latest
+InsertNewlineAtEOF: true
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+AccessModifierOffset: -4
+IndentCaseLabels: true
+IndentCaseBlocks: false
+IndentWrappedFunctionNames: false
+IndentExternBlock: NoIndent
+IndentPPDirectives: AfterHash
+PPIndentWidth: 2
+IndentRequiresClause: true
+NamespaceIndentation: None
+LambdaBodyIndentation: Signature
+
+# Line breaking 
+ColumnLimit: 100
+
+BreakBeforeBraces: Attach
+InsertBraces: true
+
+AlignAfterOpenBracket: AlwaysBreak
+BinPackArguments: false
+BinPackParameters: false
+
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: true
+
+BreakTemplateDeclarations: Yes
+
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: CurrentLine
+BreakInheritanceList: BeforeComma
+
+BreakBeforeConceptDeclarations: Always
+RequiresClausePosition: OwnLine
+RequiresExpressionIndentation: OuterScope
+
+# No collapsed blocks
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+
+# Alignment
+AlignOperands: AlignAfterOperator
+AlignEscapedNewlines: Left
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveDeclarations:
+  Enabled: false
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+
+# Spacing
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyBlock: false
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+SpacesInAngles: Never
+SpacesBeforeTrailingComments: 2
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
+
+PointerAlignment: Right
+ReferenceAlignment: Right
+DerivePointerAlignment: false
+
+# Namespaces, using-declarations, braced lists
+FixNamespaceComments: true
+ShortNamespaceLines: 1
+CompactNamespaces: false
+SortUsingDeclarations: LexicographicNumeric
+Cpp11BracedListStyle: true
+
+# Includes
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+
+# Blank lines and comments
+SeparateDefinitionBlocks: Always
+MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
+EmptyLineBeforeAccessModifier: Always
+EmptyLineAfterAccessModifier: Never
+ReflowComments: true
