@@ -4,7 +4,7 @@
 #include <ranges>
 #include <vector>
 
-#include "fp-comprasion.hpp"
+#include "fp-comparison.hpp"
 #include "grid.hpp"
 #include "problem.hpp"
 
@@ -128,7 +128,7 @@ struct TSAE {
 template <std::floating_point F>
 auto canUseTdma(const TSAE<F>& system) -> bool {
   const auto non_zero = [](const auto val) -> bool {
-    return !approxEqual(std::abs(val), 0.0F);
+    return !approxEqual(std::abs(val), 0.0);
   };
   // NOLINTBEGIN(readability-identifier-length)
   const auto non_strict_predominance = [](const auto& values) -> bool {
