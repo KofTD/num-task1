@@ -44,21 +44,20 @@ auto calcDiscrepancy(const TSAE<double> &system, const vector<double> &tdma_resu
 
 auto calcDiscrepancy(
     const vector<double> &tdma_result,
-    const std::function<double(double)> &calc_a,
-    const std::function<double(double)> &calc_b,
-    const std::function<double(double)> &calc_c,
+    const UniformGrid<double> &grid,
+    double a,
+    double b,
+    double c,
     const std::function<double(double)> &calc_phi,
     double mu1,
     double mu2) -> vector<double> {
     const auto triplets = tdma_result | vw::adjacent<3>;
-    const auto phis     = vw::iota(1UZ, tdma_result.size() - 1) | vw::transform(calc_phi);
-    const auto calc =
-        static_cast<double (*)(std::tuple<double, double, double>, double, double, double, double)>(
-            calcDiscrepancy);
-    const auto a        = vw::iota(1UZ, tdma_result.size() - 1) | vw::transform(calc_a);
-    const auto b        = vw::iota(1UZ, tdma_result.size() - 1) | vw::transform(calc_b);
-    const auto c        = vw::iota(1UZ, tdma_result.size() - 1) | vw::transform(calc_c);
-    const auto interior = vw::zip_transform(calc, triplets, a, b, c, phis);
+    const auto nodes    = grid.nodeRange() | vw::drop(1) | vw::take(grid.nodes() - 2);
+    const auto phis     = nodes | vw::transform(calc_phi);
+    const auto calc     = [&](std::tuple<double, double, double> triplet, double phi) -> double {
+        return calcDiscrepancy(triplet, a, b, c, phi);
+    };
+    const auto interior = vw::zip_transform(calc, triplets, phis);
 
     vector<double> discrepancy(tdma_result.size(), 0.0);
     discrepancy.front() = tdma_result.front() - mu1;

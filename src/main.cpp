@@ -82,8 +82,16 @@ auto optimizedRun(const UniformGrid<double> &grid) -> Run {
     auto finish          = steady_clock::now();
     auto time            = finish - start;
     auto node_difference = nodeDifference(grid, result, u<double>);
-    auto discrepancy     = calcDiscrepancy(result, calcA, calcB, calcC, calcPhi, 10.0, 100.0);
-    auto true_answers    = calcTrueAnswers(grid, u<double>) | std::ranges::to<vector>();
+    auto discrepancy     = calcDiscrepancy(
+        result,
+        grid,
+        calcA(grid.step()),
+        calcB(grid.step()),
+        calcC(grid.step()),
+        calcPhi,
+        10.0,
+        100.0);
+    auto true_answers = calcTrueAnswers(grid, u<double>) | std::ranges::to<vector>();
     return {
         .exact       = std::move(true_answers),
         .tdma        = std::move(result),

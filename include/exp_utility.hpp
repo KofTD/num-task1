@@ -29,9 +29,10 @@ auto calcDiscrepancy(const TSAE<double> &system, const std::vector<double> &tdma
     -> std::vector<double>;
 auto calcDiscrepancy(
     const std::vector<double> &tdma_result,
-    const std::function<double(double)> &calc_a,
-    const std::function<double(double)> &calc_b,
-    const std::function<double(double)> &calc_c,
+    const UniformGrid<double> &grid,
+    double a,
+    double b,
+    double c,
     const std::function<double(double)> &calc_phi,
     double mu1,
     double mu2) -> std::vector<double>;
