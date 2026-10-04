@@ -149,6 +149,11 @@ auto printTable1(RunType rtype, std::size_t number_of_nodes) -> void {
     std::println("max |u(x) - v| = {:.6e}", std::abs(max_error));
     std::println("max |discrepancy| = {:.6e}", std::abs(max_discrepancy));
     std::println("time = {:.6e} s", std::chrono::duration<double>(res.run_time).count());
+
+    const std::string data_filename =
+        "result_" + srtype + "_n" + std::to_string(number_of_nodes) + ".txt";
+    saveResultsToFile(grid, res, data_filename);
+    plotWithGnuplot(data_filename, srtype + ", n=" + std::to_string(number_of_nodes));
 }
 
 template <std::integral I1, std::integral I2, std::integral I = std::common_type_t<I1, I2>>
