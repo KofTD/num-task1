@@ -143,9 +143,3 @@ class UniformGrid {
 
   ~UniformGrid() = default;
 };
-
-template <std::floating_point F>
-auto midpoint(std::pair<F, F> bounds) -> F {
-  auto step = bounds.second - bounds.first;
-  return bounds.first + (step / 2);
-}

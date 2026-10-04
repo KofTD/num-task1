@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <concepts>
+#include <numeric>
 #include <ranges>
 #include <vector>
 
@@ -99,9 +100,10 @@ struct TSAE {
   auto operator=(TSAE&&) -> TSAE& = default;
   TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes()) {
     for (auto i : std::views::iota(1UZ, grid.steps())) {
+      constexpr auto mpt = static_cast<F (*)(F, F)>(std::midpoint<F>);
       // NOLINTBEGIN(*-identifier-length)
-      const auto a = problem.k(midpoint(grid.region(i - 1)));
-      const auto a_next = problem.k(midpoint(grid.region(i)));
+      const auto a = problem.k(std::apply(mpt, grid.region(i - 1)));
+      const auto a_next = problem.k(std::apply(mpt, grid.region(i)));
       const auto d = problem.q(grid.node(i));
       const auto phi = problem.f(grid.node(i));
       const auto step_sqr = grid.step() * grid.step();
