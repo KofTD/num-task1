@@ -24,31 +24,40 @@ auto calcC(double step) -> double {
 // NOLINTEND(*-magic-numbers)
 
 auto optimizedTdma(const UniformGrid<double> &grid) -> std::vector<double> {
-    auto step = grid.step();
-    double A  = calcA(step);
-    double B  = calcB(step);
-    double C  = calcC(step);
+    const auto step  = grid.step();
+    const auto A     = calcA(step);
+    const auto B     = calcB(step);
+    const auto C     = calcC(step);
+    const auto nodes = grid.nodes();
 
-    std::vector<double> alpha(grid.nodes() - 1);
-    std::vector<double> beta(grid.nodes() - 1);
-    alpha.front() = 0.0;
-    beta.front()  = 10.0;
-    double x_i    = 0.0;
-    double f_i    = 0.0;
-    double denom  = 0.0;
-    for (size_t i = 1; i < alpha.size(); i++) {
-        x_i   = i * step;
-        f_i   = calcPhi(x_i);
-        denom = C - (A * alpha[i - 1]);
+    std::vector<double> alpha;
+    std::vector<double> beta;
+    alpha.reserve(nodes - 1);
+    beta.reserve(nodes - 1);
 
-        alpha[i] = B / denom;
-        beta[i]  = ((A * beta[i - 1]) + f_i) / denom;
+    // Forward pass
+    alpha.push_back(0.0);
+    beta.push_back(0.0);
+    const auto phis = std::views::iota(1UZ, alpha.size())
+                    | std::views::transform([step](std::size_t i) -> double {
+                          return calcPhi(static_cast<double>(i) * step);
+                      });
+    for (const auto phi : phis) {
+        const auto denom      = C - (A * alpha.back());
+        const auto next_alpha = B / denom;
+        const auto next_beta  = ((A * beta.back()) + phi) / denom;
+        alpha.push_back(next_alpha);
+        beta.push_back(next_beta);
     }
 
-    std::vector<double> v(grid.nodes());
-    v.back() = 100.0;
-    for (int i = v.size() - 2; i >= 0; i--) {
-        v[i] = (alpha[i] * v[i + 1]) + beta[i];
+    // Backward pass
+    std::vector<double> v(nodes, double{0});
+    v.back()    = 100.0;
+    double next = v.back();
+    for (auto &&[al, be, out] :
+         std::views::zip(alpha, beta, v | std::views::take(nodes - 1)) | std::views::reverse) {
+        next = (al * next) + be;
+        out  = next;
     }
     return v;
 }
