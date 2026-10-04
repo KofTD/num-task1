@@ -15,10 +15,7 @@ struct Run {
 
 inline auto calcTrueAnswers(const UniformGrid<double>& grid,
                             const std::function<double(double)>& target) {
-  auto nodes = std::views::iota(0UZ, grid.nodes()) |
-               std::views::transform([grid](std::size_t index) -> double {
-                 return grid.node(index);
-               });
+  auto nodes = grid.nodeRange();
   auto values = std::views::transform(nodes, target);
   return values;
 }
