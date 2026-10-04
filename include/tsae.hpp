@@ -1,10 +1,11 @@
 #pragma once
 #include <algorithm>
 #include <concepts>
+#include <numeric>
 #include <ranges>
 #include <vector>
 
-#include "fp-comprasion.hpp"
+#include "fp-comparison.hpp"
 #include "grid.hpp"
 #include "problem.hpp"
 
@@ -28,8 +29,61 @@ struct TridiagonalMatrix {
           "Size must be a positive number and greater than 2");
     }
   }
+  // auto row(std::size_t index) -> std::vector<F> {
+  //   auto matrix_size = this->size();
+  //   if (index < 0 or index > matrix_size - 1) {
+  //     throw std::invalid_argument(
+  //         std::format("Matrix has rows with numbers in [0, {}] not with {}",
+  //                     matrix_size - 1, index));
+  //   }
 
-  [[nodiscard]] auto size() const -> std::size_t { return a.size() + 2; }
+  //   std::vector<F> row(matrix_size, 0.0);
+  //   if (index == 0) {
+  //     row[0] = 1.0;
+  //     row[1] = this->kappa1;
+  //     return row;
+  //   }
+  //   if (index == this->size()) {
+  //     row[index - 1] = 1.0;
+  //     row[index - 2] = this->kappa2;
+  //     return row;
+  //   }
+  //   std::size_t offset = index - 1;
+  //   row[offset] = this->a[index];
+  //   row[offset + 1] = this->c[index];
+  //   row[offset + 2] = this->b[index];
+  //   return row;
+  // }
+
+  // template <typename R>
+  //   requires std::ranges::sized_range<R>
+  // auto operator*(const R& vec) -> std::vector<F> {
+  //   auto vec_size = std::size(vec);
+  //   auto matrix_size = this->size();
+  //   if (vec_size != matrix_size) {
+  //     throw std::invalid_argument(
+  //         std::format("Matrix and vector have incompatible sizes: {} vs {}",
+  //                     matrix_size, vec_size));
+  //   }
+  //   std::vector<F> result;
+  //   result.reserve(vec_size);
+  //   auto rows =
+  //       std::views::iota(0UZ, matrix_size) |
+  //       std::views::transform([*this](std::size_t index) -> std::vector<F> {
+  //         return this->row(index);
+  //       });
+  //   for (auto row : rows) {
+  //     auto production = std::views::zip(row, vec) |
+  //                       std::views::transform(std::multiplies<F>());
+  //     auto res = std::ranges::fold_left(production, 0.0, std::plus<F>());
+  //     result.push_back(res);
+  //   }
+  //   return result;
+  // }
+
+  [[nodiscard("result ignored")]] auto size() const -> std::size_t {
+    return a.size() + 2;
+  }
   ~TridiagonalMatrix() = default;
 };
 
@@ -46,9 +100,10 @@ struct TSAE {
   auto operator=(TSAE&&) -> TSAE& = default;
   TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes()) {
     for (auto i : std::views::iota(1UZ, grid.steps())) {
+      constexpr auto mpt = static_cast<F (*)(F, F)>(std::midpoint<F>);
       // NOLINTBEGIN(*-identifier-length)
-      const auto a = problem.k(midpoint(grid.region(i - 1)));
-      const auto a_next = problem.k(midpoint(grid.region(i)));
+      const auto a = problem.k(std::apply(mpt, grid.region(i - 1)));
+      const auto a_next = problem.k(std::apply(mpt, grid.region(i)));
       const auto d = problem.q(grid.node(i));
       const auto phi = problem.f(grid.node(i));
       const auto step_sqr = grid.step() * grid.step();
@@ -75,7 +130,7 @@ struct TSAE {
 template <std::floating_point F>
 auto canUseTdma(const TSAE<F>& system) -> bool {
   const auto non_zero = [](const auto val) -> bool {
-    return !approxEqual(std::abs(val), 0.0F);
+    return !approxEqual(std::abs(val), 0.0);
   };
   // NOLINTBEGIN(readability-identifier-length)
   const auto non_strict_predominance = [](const auto& values) -> bool {
