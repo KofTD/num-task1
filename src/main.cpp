@@ -182,7 +182,7 @@ auto printTable2(std::string_view run_type) -> void {
     const auto pow2        = std::bind_front(pow<u32, u32>, 2);
     const auto upper_bound = 1'000'000;
     const u32 log2_up      = static_cast<u32>(std::ceil(std::log2(upper_bound) + 1));
-    const u32 log10_up     = static_cast<u32>(std::ceil(std::log10(upper_bound)));
+    const u32 log10_up     = static_cast<u32>(std::ceil(std::log10(upper_bound) + 1));
     auto numbers_of_nodes  = std::views::iota(1UL, log10_up) | views::transform(pow10);
     printTable2Rows(numbers_of_nodes, run_type);
     numbers_of_nodes = std::views::iota(1UL, log2_up) | views::transform(pow2);
