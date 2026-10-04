@@ -1,7 +1,6 @@
 #pragma once
 #include <algorithm>
 #include <concepts>
-#include <numeric>
 #include <ranges>
 #include <vector>
 
@@ -33,7 +32,8 @@ struct TridiagonalMatrix {
   //   auto matrix_size = this->size();
   //   if (index < 0 or index > matrix_size - 1) {
   //     throw std::invalid_argument(
-  //         std::format("Matrix has rows with numbers in [0, {}] not with {}",
+  //         std::format("Matrix has rows with numbers in [0, {}] not with
+  //         {}",
   //                     matrix_size - 1, index));
   //   }
 
@@ -62,14 +62,16 @@ struct TridiagonalMatrix {
   //   auto matrix_size = this->size();
   //   if (vec_size != matrix_size) {
   //     throw std::invalid_argument(
-  //         std::format("Matrix and vector have incompatible sizes: {} vs {}",
+  //         std::format("Matrix and vector have incompatible sizes: {} vs
+  //         {}",
   //                     matrix_size, vec_size));
   //   }
   //   std::vector<F> result;
   //   result.reserve(vec_size);
   //   auto rows =
   //       std::views::iota(0UZ, matrix_size) |
-  //       std::views::transform([*this](std::size_t index) -> std::vector<F> {
+  //       std::views::transform([*this](std::size_t index) -> std::vector<F>
+  //       {
   //         return this->row(index);
   //       });
   //   for (auto row : rows) {
@@ -98,24 +100,37 @@ struct TSAE {
   TSAE(TSAE&&) = default;
   auto operator=(const TSAE&) -> TSAE& = default;
   auto operator=(TSAE&&) -> TSAE& = default;
-  TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes()) {
-    for (auto i : std::views::iota(1UZ, grid.steps())) {
-      constexpr auto mpt = static_cast<F (*)(F, F)>(std::midpoint<F>);
-      // NOLINTBEGIN(*-identifier-length)
-      const auto a = problem.k(std::apply(mpt, grid.region(i - 1)));
-      const auto a_next = problem.k(std::apply(mpt, grid.region(i)));
-      const auto d = problem.q(grid.node(i));
-      const auto phi = problem.f(grid.node(i));
-      const auto step_sqr = grid.step() * grid.step();
-      matrix.a[i - 1] = a / step_sqr;
-      matrix.b[i - 1] = a_next / step_sqr;
-      matrix.c[i - 1] = ((a + a_next) / step_sqr) + d;
-      rhs[i] = phi;
-      // NOLINTEND(*-identifier-length)
-    }
-  }
   explicit TSAE(std::unsigned_integral auto size)
       : matrix(size), rhs(size, 0.0) {}
+  TSAE(Problem<F> problem, UniformGrid<F> grid) : TSAE(grid.nodes()) {
+    const auto interior_count = grid.steps() - 1;
+    const auto step_sqr = grid.step() * grid.step();
+
+    // NOLINTNEXTLINE(*-identifier-length)
+    const auto ks = grid.supNodeRange() |
+                    std::views::transform(
+                        [&](F x) -> double {  // NOLINT(*-identifier-length)
+                          return problem.k(x);
+                        });
+
+    // NOLINTNEXTLINE(*-identifier-length)
+    const auto xs = grid.nodeRange() | std::views::drop(1) |
+                    std::views::take(interior_count);
+
+    const auto phis =
+        rhs | std::views::drop(1) | std::views::take(interior_count);
+
+    // NOLINTNEXTLINE(*-identifier-length)
+    for (auto&& [a_i, b_i, c_i, phi_i, k_pair, x] :
+         std::views::zip(matrix.a, matrix.b, matrix.c, phis,
+                         ks | std::views::pairwise, xs)) {
+      const auto [k_prev, k_next] = k_pair;
+      a_i = k_prev / step_sqr;
+      b_i = k_next / step_sqr;
+      c_i = ((k_prev + k_next) / step_sqr) + problem.q(x);
+      phi_i = problem.f(x);
+    }
+  }
 
   auto mu1(this auto&& self) -> auto&& { return self.rhs[0]; }
   auto mu2(this auto&& self) -> auto&& { return self.rhs.back(); }
@@ -168,24 +183,36 @@ template <std::floating_point F>
 auto tdma(const TSAE<F>& system) -> std::vector<F> {
   const std::size_t matrix_size = system.matrix.size();
   const auto& matrix = system.matrix;
-  std::vector<F> alpha(matrix_size - 1, 0.0);
-  std::vector<F> beta(matrix_size - 1, 0.0);
+  std::vector<F> alpha;
+  std::vector<F> beta;
+  alpha.reserve(matrix_size - 1);
+  beta.reserve(matrix_size - 1);
 
   // Forward pass
-  alpha[0] = system.matrix.kappa1;
-  beta[0] = system.mu1();
-  for (auto i : std::views::iota(1UZ, alpha.size())) {
-    F denom = matrix.c[i - 1] - (matrix.a[i - 1] * alpha[i - 1]);
-    alpha[i] = matrix.b[i - 1] / denom;
-    beta[i] = ((matrix.a[i - 1] * beta[i - 1]) + system.phi(i)) / denom;
+  alpha.push_back(matrix.kappa1);
+  beta.push_back(system.mu1());
+  const auto phis =
+      system.rhs | std::views::drop(1) | std::views::take(matrix_size - 2);
+  // NOLINTNEXTLINE(*-identifier-length)
+  for (auto&& [a, b, c, phi] :
+       std::views::zip(matrix.a, matrix.b, matrix.c, phis)) {
+    const F denom = c - (a * alpha.back());
+    const F next_alpha = b / denom;
+    const F next_beta = ((a * beta.back()) + phi) / denom;
+    alpha.push_back(next_alpha);
+    beta.push_back(next_beta);
   }
   // Backward pass
-  std::vector<F> unknowns(matrix_size, 0.0);  // It's an y vector
-  unknowns.back() = (system.mu2() + (system.matrix.kappa2 * beta.back())) /
-                    (1.0 - (system.matrix.kappa2 * alpha.back()));
-  for (auto i :
-       std::views::iota(0UZ, unknowns.size() - 1) | std::views::reverse) {
-    unknowns[i] = (alpha[i] * unknowns[i + 1]) + beta[i];
+  std::vector<F> unknowns(matrix_size, F{0});
+  unknowns.back() = (system.mu2() + (matrix.kappa2 * beta.back())) /
+                    (F{1} - (matrix.kappa2 * alpha.back()));
+  F next = unknowns.back();
+  for (auto&& [al, be, out] :
+       std::views::zip(alpha, beta,
+                       unknowns | std::views::take(matrix_size - 1)) |
+           std::views::reverse) {
+    next = (al * next) + be;
+    out = next;
   }
   return unknowns;
 }
