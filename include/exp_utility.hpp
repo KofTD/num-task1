@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <vector>
+#include <string>
 
 struct Run {
     std::vector<double> exact;
@@ -36,3 +37,8 @@ auto calcDiscrepancy(
     const std::function<double(double)> &calc_phi,
     double mu1,
     double mu2) -> std::vector<double>;
+
+auto saveResultsToFile(
+    const UniformGrid<double>& grid, const Run& run, const std::string& filename) -> void;
+
+auto plotWithGnuplot(const std::string& data_filename, const std::string& title_prefix) -> void;
