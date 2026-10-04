@@ -168,7 +168,12 @@ auto printTable2Rows(R &&numbers_of_nodes, std::string_view run_type) -> void {
         const auto max_error       = *max_by_abs_val(run.difference);
         const auto max_discrepancy = *max_by_abs_val(run.discrepancy);
         const auto time            = std::chrono::duration<double>(run.run_time).count();
-        std::println("{:<20} {:^16.6e} {:^18.6e} {:^12.6e}", num, max_error, max_discrepancy, time);
+        std::println(
+            "{:<20} {:^16.6e} {:^18.6e} {:^12.6e}",
+            num,
+            std::abs(max_error),
+            std::abs(max_discrepancy),
+            time);
     }
 }
 
