@@ -44,6 +44,11 @@ auto u(F x) -> F {
 
 // NOLINTEND
 
+enum class RunType : std::int8_t {
+    Optimized,
+    Universal,
+};
+
 auto universalRun(const Problem<double> &problem, const UniformGrid<double> &grid) -> Run {
     auto start = steady_clock::now();
     TSAE<double> system(problem, grid);
@@ -101,13 +106,21 @@ auto optimizedRun(const UniformGrid<double> &grid) -> Run {
     };
 }
 
-auto printTable1(std::string_view run_type, std::size_t number_of_nodes) -> void {
+auto printTable1(RunType rtype, std::size_t number_of_nodes) -> void {
     auto [problem, grid] = prepareForRun(number_of_nodes);
-    const Run res = run_type == "optimized" ? optimizedRun(grid) : universalRun(problem, grid);
-    std::println(
-        "Table 1. Implementation: {}, n = {}",
-        run_type == "optimized" ? "optimized" : "universal",
-        number_of_nodes);
+    Run res{};
+    std::string srtype;
+    switch (rtype) {
+        case RunType::Universal:
+            res    = universalRun(problem, grid);
+            srtype = "universal";
+            break;
+        case RunType::Optimized:
+            res    = optimizedRun(grid);
+            srtype = "optimized";
+            break;
+    }
+    std::println("Table 1. Implementation: {}, n = {}", srtype, number_of_nodes);
     std::println(
         "{:<14} {:^14} {:^20} {:^20} {:^16} {:^14}",
         "Node number",
@@ -152,10 +165,19 @@ auto pow(I1 base, I2 pow) -> I {
 
 template <std::ranges::input_range R>
     requires std::convertible_to<std::ranges::range_value_t<R>, u32>
-auto printTable2Rows(R &&numbers_of_nodes, std::string_view run_type) -> void {
+auto printTable2Rows(R &&numbers_of_nodes, RunType rtype) -> void {
     const auto max_by_abs_val = std::bind_back(
         std::ranges::max_element, std::less<>(), static_cast<double (*)(double)>(std::abs));
-    std::println("Table 2: implementation {}", run_type);
+    std::string srtype;
+    switch (rtype) {
+        case RunType::Universal:
+            srtype = "universal";
+            break;
+        case RunType::Optimized:
+            srtype = "optimized";
+            break;
+    }
+    std::println("Table 2: implementation {}", srtype);
     std::println(
         "{:<20} {:^16} {:^18} {:^12}",
         "Number of regions",
@@ -164,7 +186,15 @@ auto printTable2Rows(R &&numbers_of_nodes, std::string_view run_type) -> void {
         "time, s");
     for (auto &&num : numbers_of_nodes) {
         const auto [problem, grid] = prepareForRun(num);
-        const auto run = run_type == "optimized" ? optimizedRun(grid) : universalRun(problem, grid);
+        Run run{};
+        switch (rtype) {
+            case RunType::Universal:
+                run = universalRun(problem, grid);
+                break;
+            case RunType::Optimized:
+                run = optimizedRun(grid);
+                break;
+        }
         const auto max_error       = *max_by_abs_val(run.difference);
         const auto max_discrepancy = *max_by_abs_val(run.discrepancy);
         const auto time            = std::chrono::duration<double>(run.run_time).count();
@@ -177,16 +207,16 @@ auto printTable2Rows(R &&numbers_of_nodes, std::string_view run_type) -> void {
     }
 }
 
-auto printTable2(std::string_view run_type) -> void {
+auto printTable2(RunType rtype) -> void {
     const auto pow10       = std::bind_front(pow<u32, u32>, 10);
     const auto pow2        = std::bind_front(pow<u32, u32>, 2);
     const auto upper_bound = 1'000'000;
     const u32 log2_up      = static_cast<u32>(std::ceil(std::log2(upper_bound) + 1));
     const u32 log10_up     = static_cast<u32>(std::ceil(std::log10(upper_bound) + 1));
     auto numbers_of_nodes  = std::views::iota(1UL, log10_up) | views::transform(pow10);
-    printTable2Rows(numbers_of_nodes, run_type);
+    printTable2Rows(numbers_of_nodes, rtype);
     numbers_of_nodes = std::views::iota(1UL, log2_up) | views::transform(pow2);
-    printTable2Rows(numbers_of_nodes, run_type);
+    printTable2Rows(numbers_of_nodes, rtype);
 }
 
 auto main(int argc, char *argv[]) -> int {
@@ -207,14 +237,19 @@ auto main(int argc, char *argv[]) -> int {
         return 0;
     }
 
-    if (algo != "universal" and algo != "optimized") {
+    RunType rtype = RunType::Universal;
+    if (algo == "universal") {
+        rtype = RunType::Universal;
+    } else if (algo == "optimized") {
+        rtype = RunType::Optimized;
+    } else {
         std::println("Algorithm must be universal or optimized, not {}", algo);
         return 1;
     }
 
-    printTable1(algo, number_of_nodes);
+    printTable1(rtype, number_of_nodes);
     std::println("======================");
-    printTable2(algo);
+    printTable2(rtype);
 
     return 0;
 }
