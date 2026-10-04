@@ -27,11 +27,6 @@ include_directories(include)
 add_executable(${PROJECT_NAME} src/main.cpp src/exp_utility.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
 
-add_executable(var2_runner
-    src/task2_solver.cpp
-    src/task2_main.cpp
-)
-
 if(BUILD_TESTS)
     find_package(GTest REQUIRED)
     enable_testing()

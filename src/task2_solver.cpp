@@ -1,40 +1,12 @@
 #include "task2_solver.hpp"
-#include <cmath>
-#include <chrono>
+
 #include <algorithm>
-
-
+#include <chrono>
+#include <cmath>
 
 double exact_u(double x) { return (10.0 + 90.0 * x * x); }
 
 double canonical_phi(double x) { return (450.0 * x * x - 2110.0); }
-
-std::vector<double> solve_task2(std::size_t n) {
-  double h = 1.0 / n;
-  double A = 12.0 / (h * h);
-  double B = 12.0 / (h * h);
-  double C = 24.0 / (h * h) + 5.0;
-
-  std::vector<double> alpha(n), beta(n);
-  alpha[0] = 0.0;
-  beta[0] = 10.0;
-  double x_i, f_i, denom;
-  for (size_t i = 1; i < n; i++) {
-    x_i = i * h;
-    f_i = canonical_phi(x_i);
-    denom = C - A * alpha[i - 1];
-
-    alpha[i] = B / denom;
-    beta[i] = (A * beta[i - 1] + f_i) / denom;
-  }
-
-  std::vector<double> v(n + 1);
-  v[n] = 100.0;
-  for (int i = n - 1; i >= 0; i--) {
-    v[i] = alpha[i] * v[i + 1] + beta[i];
-  }
-  return v;
-}
 
 double compute_max_error(const std::vector<double>& v, double h) {
   std::size_t n = v.size() - 1;
@@ -42,7 +14,7 @@ double compute_max_error(const std::vector<double>& v, double h) {
   double x_i;
 
   for (size_t i = 0; i <= n; i++) {
-    x_i = i*h;
+    x_i = i * h;
     max_err = std::max(std::abs(v[i] - exact_u(x_i)), max_err);
   }
 
@@ -54,7 +26,8 @@ double compute_max_residual(const std::vector<double>& v, double h) {
   double max_res = std::max(std::abs(v[0] - 10.0), std::abs(v[n] - 100.0));
 
   double x_i;
-  double lt, rt; // lt - left part of the equation, rt - right part of the equation
+  double lt,
+      rt;  // lt - left part of the equation, rt - right part of the equation
 
   for (size_t i = 1; i < n; i++) {
     double x_i = i * h;
@@ -72,7 +45,7 @@ double compute_max_residual(const std::vector<double>& v, double h) {
 }
 
 std::vector<NodeData> collect_node_data(const std::vector<double>& v,
-    double h) {
+                                        double h) {
   std::size_t total_nodes = v.size();
   std::size_t n = total_nodes - 1;
 
