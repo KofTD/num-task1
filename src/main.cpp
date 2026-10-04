@@ -101,20 +101,19 @@ auto printTable1(std::string_view run_type, std::size_t number_of_nodes) -> void
         run_type == "optimized" ? "optimized" : "universal",
         number_of_nodes);
     std::println(
-        "{:>14} {:>14} {:>20} {:>20} {:>12} {:>14}",
+        "{:<14} {:^14} {:^20} {:^20} {:^16} {:^14}",
         "Node number",
         "x",
         "u(x)",
         "v",
         "u(x) - v",
         "discrepancy");
-    const auto nodes = UniformGrid<double>(0.0, 1.0, number_of_nodes).nodeRange();
     const auto row_data =
-        std::views::zip(nodes, res.exact, res.tdma, res.difference, res.discrepancy);
+        std::views::zip(grid.nodeRange(), res.exact, res.tdma, res.difference, res.discrepancy);
     for (auto [num, row] : std::views::enumerate(row_data)) {
         auto [node, exact, tdma, difference, discrepancy] = row;
         std::println(
-            "{:>14} {:>14.8f} {:>20.12f} {:>20.12f} {:>12.3e} {:>14.3e}",
+            "{:<14} {:^14.8f} {:^20.12f} {:^20.12f} {:^16.3e} {:^14.3e}",
             num,
             node,
             exact,
@@ -129,6 +128,52 @@ auto printTable1(std::string_view run_type, std::size_t number_of_nodes) -> void
     std::println("max |u(x) - v| = {:.6e}", std::abs(max_error));
     std::println("max |discrepancy| = {:.6e}", std::abs(max_discrepancy));
     std::println("time = {:.6e} s", std::chrono::duration<double>(res.run_time).count());
+}
+
+template <std::integral I1, std::integral I2, std::integral I = std::common_type_t<I1, I2>>
+auto pow(I1 base, I2 pow) -> I {
+    I ibase = base;
+    I ipow  = pow;
+
+    I result = 1;
+    for ([[maybe_unused]] auto blk : std::views::iota(static_cast<I>(0), ipow)) {
+        result *= ibase;
+    }
+    return result;
+}
+
+template <std::ranges::input_range R>
+    requires std::convertible_to<std::ranges::range_value_t<R>, u32>
+auto printTable2Rows(R &&numbers_of_nodes, std::string_view run_type) -> void {
+    const auto max_by_abs_val = std::bind_back(
+        std::ranges::max_element, std::less<>(), static_cast<double (*)(double)>(std::abs));
+    std::println("Table 2: implementation {}", run_type);
+    std::println(
+        "{:<20} {:^16} {:^18} {:^12}",
+        "Number of regions",
+        "max error",
+        "max discrepancy",
+        "time, s");
+    for (auto &&num : numbers_of_nodes) {
+        const auto [problem, grid] = prepareForRun(num);
+        const auto run = run_type == "optimized" ? optimizedRun(grid) : universalRun(problem, grid);
+        const auto max_error       = *max_by_abs_val(run.difference);
+        const auto max_discrepancy = *max_by_abs_val(run.discrepancy);
+        const auto time            = std::chrono::duration<double>(run.run_time).count();
+        std::println("{:<20} {:^16.6e} {:^18.6e} {:^12.6e}", num, max_error, max_discrepancy, time);
+    }
+}
+
+auto printTable2(std::string_view run_type) -> void {
+    const auto pow10       = std::bind_front(pow<u32, u32>, 10);
+    const auto pow2        = std::bind_front(pow<u32, u32>, 2);
+    const auto upper_bound = 1'000'000;
+    const u32 log2_up      = static_cast<u32>(std::ceil(std::log2(upper_bound) + 1));
+    const u32 log10_up     = static_cast<u32>(std::ceil(std::log10(upper_bound)));
+    auto numbers_of_nodes  = std::views::iota(1UL, log10_up) | views::transform(pow10);
+    printTable2Rows(numbers_of_nodes, run_type);
+    numbers_of_nodes = std::views::iota(1UL, log2_up) | views::transform(pow2);
+    printTable2Rows(numbers_of_nodes, run_type);
 }
 
 auto main(int argc, char *argv[]) -> int {
@@ -155,6 +200,8 @@ auto main(int argc, char *argv[]) -> int {
     }
 
     printTable1(algo, number_of_nodes);
+    std::println("======================");
+    printTable2(algo);
 
     return 0;
 }
