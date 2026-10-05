@@ -144,10 +144,16 @@ auto printTable1(RunType rtype, std::size_t number_of_nodes) -> void {
     }
     const auto max_by_abs_val = std::bind_back(
         std::ranges::max_element, std::less<>(), static_cast<double (*)(double)>(std::abs));
-    const auto max_error       = *max_by_abs_val(res.difference);
-    const auto max_discrepancy = *max_by_abs_val(res.discrepancy);
-    std::println("max |u(x) - v| = {:.6e}", std::abs(max_error));
-    std::println("max |discrepancy| = {:.6e}", std::abs(max_discrepancy));
+    const auto max_error       = max_by_abs_val(res.difference);
+    const auto max_discrepancy = max_by_abs_val(res.discrepancy);
+    std::println(
+        "max |u(x) - v| = {:.6e} at {}",
+        std::abs(*max_error),
+        std::distance(res.difference.begin(), max_error));
+    std::println(
+        "max |discrepancy| = {:.6e} at {}",
+        std::abs(*max_discrepancy),
+        std::distance(res.discrepancy.begin(), max_discrepancy));
     std::println("time = {:.6e} s", std::chrono::duration<double>(res.run_time).count());
 }
 
