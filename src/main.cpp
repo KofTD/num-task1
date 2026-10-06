@@ -142,10 +142,8 @@ auto printTable1(RunType rtype, std::size_t number_of_nodes) -> void {
             difference,
             discrepancy);
     }
-    const auto max_by_abs_val = std::bind_back(
-        std::ranges::max_element, std::less<>(), static_cast<double (*)(double)>(std::abs));
-    const auto max_error       = max_by_abs_val(res.difference);
-    const auto max_discrepancy = max_by_abs_val(res.discrepancy);
+    const auto max_error       = std::ranges::max_element(res.difference, {}, std::abs);
+    const auto max_discrepancy = std::ranges::max_element(res.discrepancy, {}, std::abs);
     std::println(
         "max |u(x) - v| = {:.6e} at {}",
         std::abs(*max_error),
